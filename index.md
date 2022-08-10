@@ -1,3 +1,6 @@
+---
+layout: default
+---
 # ubuntu
 
 ## php 설치

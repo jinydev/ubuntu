@@ -96,48 +96,56 @@ apt-get remove --purge nginx nginx-full nginx-common
 
 
 ## step4. PHP 설치 및 설정
+우분투에 최신의 PHP 버젼을 설치합니다.
 
-The latest version of Moodle (v4.0.2) requires PHP 8.0. 
-Add Ondrej's PHP repository to add support for PHP 8.0.
+### 저장소 연결
+최신의 PHP 버젼을 설치하기 위해서는 추가 저장소를 등록하여, 패키지의 설치 정보를 읽어 와야 합니다.
 
-저장소 연결
 ```
 sudo apt install software-properties-common
-sudo add-apt-repository ppa:ondrej/php
+sudo add-apt-repository ppa:ondrej/php -y
+```
+
+저장소를 추가한 후에 시스템의 패키지 목록을 갱신합니다.
+
+```
 sudo apt update
 ```
 
-```
-$ sudo add-apt-repository ppa:ondrej/php -y
-```
-
-Install PHP 
+### PHP 설치 
+이제 다음 명령을 통하여 PHP를 설치합니다. `php`뒤에 `x.x`의 버젼을 추가하여 설치합니다.
 
 ```
 sudo apt install php8.1
 ```
 
-Install PHP 8.1 FPM for Nginx
+### PHP-FPM 설치
+Nginx를 웹서버로 사용하는 경우 추가로 `PHP-FPM`을 설치 및 실행해 주어야 합니다. 
+설치된 PHP 버젼과 맞는 fpm을 선택하여 설치합니다.
 
 ```
 sudo apt install php8.1-fpm
 ```
 
-and the required extensions.
 ### PHP 확장 패키지 설치
-```
-sudo apt install php8.1-common php8.1-mysql php8.1-xml php8.1-xmlrpc php8.1-curl php8.1-gd php8.1-imagick php8.1-cli php8.1-dev php8.1-imap php8.1-mbstring php8.1-opcache php8.1-soap php8.1-zip php8.1-redis php8.1-intl -y
-```
+추가적으로 PHP 확장 패키지를 같이 설치해 줍니다.
 
 ```
-$ sudo apt install graphviz aspell ghostscript clamav php8.1-cli php8.1-pspell php8.1-curl php8.1-gd php8.1-intl php8.1-mysql php8.1-xml php8.1-xmlrpc php8.1-ldap php8.1-zip php8.1-soap php8.1-mbstring
+sudo apt install php8.1-common php8.1-curl php8.1-gd php8.1-imagick php8.1-cli php8.1-dev php8.1-imap php8.1-mbstring php8.1-opcache php8.1-soap php8.1-zip php8.1-redis php8.1-intl php8.1-xmlrpc php8.1-xml php8.1-mysql php8.1-ldap php8.1-pspell -y
 ```
 
-### Configure PHP 8.1
+
+```
+$ sudo apt install graphviz aspell ghostscript clamav          
+```
+
+### PHP 8.1 설정
+`php.ini`의 설정을 변경합니다.
 
 ```
 sudo nano /etc/php/8.1/fpm/php.ini
 ```
+
 
 Open the file /etc/php/8.0/fpm/pool.d/www.conf.
 
@@ -145,7 +153,8 @@ Open the file /etc/php/8.0/fpm/pool.d/www.conf.
 $ sudo nano /etc/php/8.0/fpm/pool.d/www.conf
 ```
 
-Find the user=apache and group=apache lines in the file and change them as follows.
+서버에서 php를 실행할 수 있는 사용자를 변경합니다.
+설정파일에서 `user=apache` 와 `group=apache` 가 있는 라인을 찾아 다음과 같이 변경합니다.
 
 ...
 ; Unix user/group of processes
@@ -154,19 +163,32 @@ Find the user=apache and group=apache lines in the file and change them as follo
 user = nginx
 group = nginx
 ...
-Also, find the lines listen.owner=www-data and listen.group=www-data in the file and change them to nginx.
+
+또한, `listen.owner=www-data` 와 `listen.group=www-data` 부분을 찾아 nginx가 실행될 수 있도록 변경합니다.
 
 ...
 listen.owner = nginx
 listen.group = nginx
 ...
-Save the file by pressing CTRL+X, then Y.
 
-Restart the PHP-FPM service.
+설정한 파일을 저장합니다. 
+> nano 에디터에서 `CTRL+X`를 누른후 `Y`를 선택 합니다..
+
+설정 파일을 수정후에 `PHP-FPM` 서비스를 재시작 합니다.
 
 ```
 $ sudo systemctl restart php8.1-fpm
 ```
+
+### nginx 실행하기
+`systemctl` 명령을 통하여 nginx를 실행합니다. 
+
+```
+$ sudo systemctl start nginx
+```
+
+> 만일, 실행에 오류가 있는 경우 서버를 재시작한 후에 다시 명령을 입력합니다.
+
 
 ## 4. Install and Configure MySQL
 Install MySQL server.
@@ -294,6 +316,7 @@ The standalone option of Certbot uses its web server to create the certificate t
 Do a dry run of the SSL renewal process to ensure it works.
 
 $ sudo certbot renew --dry-run
+
 8. Configure Nginx
 Open the file nginx.conf for editing.
 
@@ -373,6 +396,7 @@ $ sudo nginx -t
 Restart the Nginx service.
 
 $ sudo systemctl restart nginx
+
 9. Complete Moodle Install
 Open the URL https://moodle.example.com in your browser to open the welcome screen.
 

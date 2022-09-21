@@ -1,44 +1,62 @@
-# How to Install Laravel on Ubuntu Server 22.04
-
-## ubuntu 22.04 서버를 준비합니다.
-* 우분투 서버 준비
-* 도메인 준비
-> vultr 가상서버 생성
+# 우분투 라라벨 환경설정 및 배포
+> Ubuntu Server 22.04
+우분투 서버에 라라벨을 설치하고, 개발된 코드를 배포하는 방법에 대해서 알아봅니다.
 
 
-## step1. 방화벽 설정
-`HTTP` 와 `HTTPS` 접속을 위하여 포트를 활성화 합니다.
+## step1. 준비물
+> 서버 세팅을 위한 몇가지 준비사항에 대해서 알아봅니다.
 
-Open them using the Uncomplicated Firewall (UFW).
+### 우분투 서버 준비
+라라벨을 설치할 우분투 서버를 준비합니다. 우분투는 직접설치, 가상머신, 클라우드 등 다양한 방법으로
+서버를 준비 할 수 있습니다.
+* 컴퓨터 직접 설치
+* virtualBox 가상머신으로 설치
+* 클라우드 설치 (vultr)
+
+### 도메인
+웹 서비스 접속을 위한 도메인을 준비합니다. 도메인의 `http` 통하여 웹서버의 `80`포트에 접속합니다. 
+또는, `https`를 통하여 `443`번 포트에 접속을 시도 합니다.
+> 가상호스트 설정을 통하여 하나의 컴퓨터에 여러개의 도메인 설정도 가능합니다.
+
+
+## step2. 방화벽 설정
+`HTTP` 와 `HTTPS` 접속을 위하여 '80' 포트와 `443` 포트 접속을 허용해야 합니다.
+방화벽 설정 명령은 `ufw` 입니다. 다음 명령을 입력하여 방화벽을 해제 합니다.
 
 ```
 $ sudo ufw allow http
 $ sudo ufw allow https
 ```
-Check the status of the firewall.
+
+설정이 잘되었는지 `status` 옵션을 통하여 확인을 합니다.
 
 ```
 $ sudo ufw status
 ```
 
-## 2. Install Nginx
+## step3. 웹서버 설치(Nginx)
+Nginx 웹서버를 설치합니다. 
 
-Ubuntu 22.04 ships with an older version of Nginx. This article prefers using the official Nginx repository to install the latest version.
+### 저장소 위치추가
+우분투 22.04는 이전의 nginx 버젼을 탑제하고 있습니다. 최신의 버젼을 설치하기 위해서는
+공식 nginx 저장소를 추가하여 최신의 버젼으로 설치할 수 있도록 추가 설정이 필요합니다.
 
-Install dependencies required for the Nginx install.
+#### 의존성
+nginx는 몇개의 의존성 패키지를 먼저 설치해 주어야 합니다. 
+다음과 같이 명령을 입력해서 설치합니다. 
 
 ```
 $ sudo apt install curl gnupg2 ca-certificates lsb-release ubuntu-keyring -y
 ```
 
-Import Nginx's signing key.
+#### Nginx's signing key 삽입.
 
 ```
 $ curl https://nginx.org/keys/nginx_signing.key | gpg --dearmor \
 | sudo tee /usr/share/keyrings/nginx-archive-keyring.gpg >/dev/null
 ```
 
-Add the repository for Nginx's stable version.
+#### Nginx's 안정 버젼 저장소 추가.
 
 ```
 $ echo "deb [signed-by=/usr/share/keyrings/nginx-archive-keyring.gpg arch=amd64] \
@@ -46,33 +64,38 @@ http://nginx.org/packages/ubuntu `lsb_release -cs` nginx" \
 | sudo tee /etc/apt/sources.list.d/nginx.list
 ```
 
-Update the system repository list.
+저장소를 추가한 후에는, 시스템의 패키지 목록을 갱신해 주어야 설치가 가능합니다.
 
 ```
 $ sudo apt update
 ```
 
-Install the Nginx server.
+#### Nginx 설치
+이제 다음 명령을 통하여 Nginx를 설치합니다.
 
 ```
 $ sudo apt install nginx
 ```
 
-Verify the installation.
+Nginx가 잘 설치되었는지 버젼을 확인해 봅니다.
 
 ```
 $ nginx -v
 ```
 
 
-### nginx 완전삭제
+#### nginx 완전삭제
+만일 Nginx를 다시 설치하거나, 삭제를 원하는 경우 다음과 같이 명령을 입력합니다.
 
 ```
 apt-get remove --purge nginx nginx-full nginx-common 
 ```
 
+> --purge 옵션을 사용하지 않으면, 이전에 설정한 nginx의 파일들이 계속 남아 있게 됩니다.
 
-## 3. PHP 설치 및 설정
+
+
+## step4. PHP 설치 및 설정
 
 The latest version of Moodle (v4.0.2) requires PHP 8.0. 
 Add Ondrej's PHP repository to add support for PHP 8.0.

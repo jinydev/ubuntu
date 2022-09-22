@@ -120,12 +120,17 @@ sudo apt install php8.1
 ```
 
 ### PHP-FPM 설치
+
+
 Nginx를 웹서버로 사용하는 경우 추가로 `PHP-FPM`을 설치 및 실행해 주어야 합니다. 
-설치된 PHP 버젼과 맞는 fpm을 선택하여 설치합니다.
+별도 서버로 구동되어 속도가 빠른 PHP-FPM 을 설치합니다.
+
 
 ```
 sudo apt install php8.1-fpm
 ```
+> 설치된 PHP 버젼과 맞는 fpm을 선택하여 설치합니다.
+
 
 ### PHP 확장 패키지 설치
 추가적으로 PHP 확장 패키지를 같이 설치해 줍니다.
@@ -146,6 +151,8 @@ $ sudo apt install graphviz aspell ghostscript clamav
 sudo nano /etc/php/8.1/fpm/php.ini
 ```
 
+> php.ini 의 설정을 운영 환경에 맞게 수정하며 대상 파일은 php-fpm 이 사용하는 /etc/php/7.0/fpm/php.ini 과 명령행에서 구동할 경우 사용하는 /etc/php/7.0/cli/php.ini 2개입니다.
+
 
 Open the file /etc/php/8.0/fpm/pool.d/www.conf.
 
@@ -156,6 +163,7 @@ $ sudo nano /etc/php/8.0/fpm/pool.d/www.conf
 서버에서 php를 실행할 수 있는 사용자를 변경합니다.
 설정파일에서 `user=apache` 와 `group=apache` 가 있는 라인을 찾아 다음과 같이 변경합니다.
 
+```ini
 ...
 ; Unix user/group of processes
 ; Note: The user is mandatory. If the group is not set, the default user's group
@@ -163,13 +171,17 @@ $ sudo nano /etc/php/8.0/fpm/pool.d/www.conf
 user = nginx
 group = nginx
 ...
+```
+
 
 또한, `listen.owner=www-data` 와 `listen.group=www-data` 부분을 찾아 nginx가 실행될 수 있도록 변경합니다.
 
+```ini
 ...
 listen.owner = nginx
 listen.group = nginx
 ...
+```
 
 설정한 파일을 저장합니다. 
 > nano 에디터에서 `CTRL+X`를 누른후 `Y`를 선택 합니다..
@@ -190,37 +202,47 @@ $ sudo systemctl start nginx
 > 만일, 실행에 오류가 있는 경우 서버를 재시작한 후에 다시 명령을 입력합니다.
 
 
-## 4. Install and Configure MySQL
-Install MySQL server.
+## step5. MySQL 설치 및 설정
+라라벨은 관계형 데이터베이스와 연동하여 동작합니다. 이를 위해서 오픈소스인 MySQL을 같이 설치해 줍니다.
+
+### 서버 설치
+다음 명령을 입력하여 mysql server를 설치합니다.
 
 ```
 $ sudo apt install mysql-server
 ```
 
-The following step is necessary for MySQL versions 8.0.28 and above. Enter the MySQL Shell.
+> The following step is necessary for MySQL versions 8.0.28 and above. Enter the MySQL Shell.
+
+### mysql 실행
+`mysql` 명령을 입력하여 서버에 접속합니다.
 
 ```
 $ sudo mysql
 ```
 
-Run the following command to set the password for your root user. Make sure it has a mix of numbers, uppercase, lowercase, and special characters.
-
+### 사용자 추가
+MySQL을 설치한 후에 제일 먼저 해주어야 하는 것은 DB 사용자를 추가하는 것입니다.
+먼저 `root` 사용자의 패스워드를 다음과 같이 추가합니다.
 ```
 mysql> ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'yourrootpassword';
 ```
+> 패스워드에는 숫자, 대문자, 소문자, 특수문자가 같이 포함되어 있어야 합니다.
 
-Exit the shell.
+설정을 완료 했으면, mysql 클라이언트를 종료합니다.
 
 ```
 mysql> exit
 ```
-Run the Secure installation script.
+
+### 보완 설정
+Secure installation 스크립트를 실행합니다. 
 
 ```
 $ sudo mysql_secure_installation
 ```
 
-Answer the questions as follows to secure MySQL.
+MySQL 보완을 위하여 다음 질문들 몇개를 설정합니다.
 
 ```
 Would you like to setup VALIDATE PASSWORD component?
@@ -233,37 +255,44 @@ Disallow root login remotely? (Press y|Y for Yes, any other key for No) : (Enter
 Remove test database and access to it? (Press y|Y for Yes, any other key for No) : Y (Enter Y)
 Reload privilege tables now? (Press y|Y for Yes, any other key for No) : (Enter Y)
 Log in to the MySQL shell.
-
 ```
+
+설정후 다시 `root` 계정으로 접속을 하여 확인합니다.
 
 ```
 $ sudo mysql -u root -p
 ```
 
-Create a database for Moodle.
+### 사용자계정 및 스키마 생성
+새로운 사용자와 스키마를 생성하고 권한을 부여합니다.
 
+#### 스키마 생성
 ```
 mysql > CREATE DATABASE laravel DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 ```
 
-Create an SQL user to access the database. Replace yourpassword with a strong password of your choice.
-
+#### 사용자생성
+데이터베이스에 접속 가능한 새로운 사용자를 추가합니다.
 ```
-mysql > CREATE USER 'moodleuser'@'localhost' IDENTIFIED BY 'yourpassword';
-```
-
-Grant moodleuser access to the database.
-
-```
-mysql > GRANT SELECT,INSERT,UPDATE,DELETE,CREATE,CREATE TEMPORARY TABLES,DROP,INDEX,ALTER ON moodledb.* TO moodleuser@localhost;
+mysql > CREATE USER 'jiny'@'localhost' IDENTIFIED BY 'yourpassword';
 ```
 
-Reload the privilege table.
+> Replace yourpassword with a strong password of your choice.
+
+
+그리고 생성한 사용자계정이 스키마에 접근이 가능하도록 권한을 설정합니다.
+
+```
+mysql > GRANT SELECT,INSERT,UPDATE,DELETE,CREATE,CREATE TEMPORARY TABLES,DROP,INDEX,ALTER ON moodledb.* TO jiny@localhost;
+```
+
+사용자와 권한이 적용하도록 테이블을 다시 로드합니다.
+
 ```
 mysql > FLUSH PRIVILEGES;
 ```
 
-Exit the shell.
+shell을 종료하고 나갑니다.
 
 ```
 mysql > exit
@@ -271,67 +300,102 @@ mysql > exit
 
 
 
-## 7. Install SSL
-You need the Certbot tool that uses Let's Encrypt API, to install SSL certificates. The latest version of Certbot is available via the Snap store.
+## step6. SSL 설치
+보안 웹페이지 접근을 위한 `https`를 사용하기 위해서는 인증서를 같이 설치해 주어야 합니다.
+`Let's Encrypt`를 이용하면 무료로 인증서를 발급받을 수 있습니다.
 
-Issue the following commands to ensure that you have the latest version of snapd.
+이를 편리하게 발급 및 갱신을 위한 `Certbot` 도구를 같이 설치합니다.
+
+### Snap store 갱신
+Snap Store를 통하여 최신 버젼의 `Cerbot`을 설치합니다.
+이를 위하여 먼저 snap 을 최신 상태로 갱신을 합니다.
 
 ```
 $ sudo snap install core
 $ sudo snap refresh core
 ```
 
-Install Certbot.
+### Certbot 설치
+Certbot을 설치합니다.
 
 ```
 $ sudo snap install --classic certbot
 ```
 
-Create a symlink for Certbot to the /usr/bin directory.
+Certbot 명령을 어디서든지 호출할 수 있도록 `/usr/bin` 디랙터리에 심볼 링크를 생성합니다.
 
 ```
 $ sudo ln -s /snap/bin/certbot /usr/bin/certbot
 ```
 
-Issue the SSL Certificate.
+### SSL 인증서 생성
+도메인에 대한 인증서를 생성합니다. 인증서를 생성하기 위해서는 먼저 도메인을 준비되어 있어야 합니다.
 
 ```
-$ sudo certbot certonly --standalone --agree-tos --no-eff-email --staple-ocsp --preferred-challenges http -m name@example.com -d tms.jinyerp.com
+$ sudo certbot certonly --standalone --agree-tos --no-eff-email --staple-ocsp --preferred-challenges http -m name@example.com -d jiny.example.com
 ```
 
 Generate a Diffie-Hellman group certificate.
 
+```
 $ sudo openssl dhparam -dsaparam -out /etc/ssl/certs/dhparam.pem 4096
-Open the file /etc/letsencrypt/renewal/moodle.example.com.conf for editing.
+```
 
-$ sudo nano /etc/letsencrypt/renewal/moodle.example.com.conf
-Paste the following code at the bottom.
+선택한 도메인의 인증서 설정파일이 같이 생성됩니다.
+`/etc/letsencrypt/renewal/jiny.example.com.conf`을 열어 내용을 수정합니다.
 
+```
+$ sudo nano /etc/letsencrypt/renewal/jiny.example.com.conf
+```
+
+파일 하단에 아래 내용을 추가 합니다.
+
+```
 pre_hook = systemctl stop nginx
 post_hook = systemctl start nginx
+```
+
 Save the file by pressing Ctrl + X and entering Y when prompted.
 
 The standalone option of Certbot uses its web server to create the certificate that doesn't work with Nginx. The pre_hook and post_hook commands run before and after the renewal to automatically shut and restart the Nginx server without manual intervention.
 
+#### 인증서 연장하기
+
 Do a dry run of the SSL renewal process to ensure it works.
 
+```
 $ sudo certbot renew --dry-run
+```
 
-8. Configure Nginx
+
+## step7. Nginx 설정 변경
+
+### nginx.conf 수정
 Open the file nginx.conf for editing.
 
+```
 $ sudo nano /etc/nginx/nginx.conf
+```
+
 Find the line include /etc/nginx/conf.d/*.conf; and paste the following code below it.
 
+```
 server_names_hash_bucket_size  64;
+```
+
 Save the file by pressing CTRL+X, then Y.
 
+### 가상도메인
 Create the Moodle configuration file for Nginx and open it for editing.
 
+```
 $ sudo nano /etc/nginx/conf.d/moodle.conf
+```
+
 Paste the following code in it.
 
-# Redirect HTTP to HTTPS
+#### Redirect HTTP to HTTPS
+```
 server {
     listen 80;  listen [::]:80;
     server_name moodle.example.com;
@@ -388,20 +452,19 @@ server {
         return 404;
     }
 }
+```
+
 Save the file by pressing CTRL+X, then Y.
 
+### 설정확인 및 실행하기
 Verify Nginx configuration syntax.
 
+```
 $ sudo nginx -t
+```
+
 Restart the Nginx service.
 
+```
 $ sudo systemctl restart nginx
-
-9. Complete Moodle Install
-Open the URL https://moodle.example.com in your browser to open the welcome screen.
-
-Press the Continue button to proceed. The following page checks for system requirements. If everything is okay, move to the next screen.
-
-The next page sets up the database and files required by Moodle. Continue to create your administrator account and fill in other details on the next screen.
-
-The final step is to set up Moodle's front page. Save your changes to proceed to the Moodle dashboard. You can start using the application to create your learning platform.
+```

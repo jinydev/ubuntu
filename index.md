@@ -5,6 +5,9 @@
 우분에서 라라벨 배포 및 개발을 위한 설정방법에 대해서 알아 봅니다.
 [학습하기](laravel)
 
+* [서버세팅하기](laravel/setup)
+* [코드 배포하기](laravel/deploy)
+
 
 ## php 설치
 
